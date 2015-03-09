@@ -1,0 +1,35 @@
+#!/bin/bash
+
+set -e
+
+usage() {
+  echo "Usage: $0 [-d database name]" 1>&2; exit 1;
+}
+
+while getopts ":d:" opt; do
+  case ${opt} in
+    d) db_name=$OPTARG;;
+    *) usage;;
+  esac
+done
+
+if [[ -z $db_name  ]]; then usage; fi
+
+dropdb --if-exists -i $db_name
+createdb $db_name
+psql -c 'create extension postgis' $db_name
+
+# Download and extract data
+make data/gdb/tiger/acs_2013_5yr_bg.gdb
+make data/csv/location_affordability_index.csv
+
+# Import location affordability index data
+psql -f sql/location_affordability_index_schema.sql $db_name
+cat data/csv/location_affordability_index.csv | psql -c "copy location_affordability_index from stdin with csv header delimiter ',' NULL E'' quote '\"'" $db_name
+psql -c "update location_affordability_index set blkgrp = replace(blkgrp, '''', '')" $db_name # bad data, ids contain surrounding quotes
+
+# Import ACS geography and data.  This will create multiple tables to support ACS data.
+ogr2ogr -t_srs 'EPSG:4326' --config PG_USE_COPY YES -append -f PGDump /dev/stdout data/gdb/tiger/acs_2013_5yr_bg.gdb/ | psql $db_name
+ogr2ogr -nlt PROMOTE_TO_MULTI -t_srs 'EPSG:4326' --config PG_USE_COPY YES -append -f PGDump /dev/stdout data/shp/congressional_districts_114.shp | psql $db_name
+
+psql -c 'alter table congressional_districts_114 rename column wkb_geometry to geom' $db_name
