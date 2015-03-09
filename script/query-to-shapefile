@@ -1,0 +1,12 @@
+#!/bin/sh
+
+mkdir -p tmp
+
+dbname=$1
+sql_file=$2
+
+
+query=$(tr -d '\n' < $sql_file)
+escaped_query=$(echo $query | sed "s/'/\\\'/g")
+
+ogr2ogr tmp/results.shp PG:"dbname=${dbname}" -sql "$(cat $sql_file)"
