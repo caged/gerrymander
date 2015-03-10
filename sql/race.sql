@@ -1,36 +1,56 @@
+copy (
 with aggregates as (
   select
-    cd114fp as district,
-    stddev(b03002e1) as stddev_total_population,
-    avg(b03002e1) as mean_total_population
+    cd.statefp as agg_state,
+    cd114fp as agg_district,
+    round(stddev(b03002e1), 2) as stddev_total_population,
+    round(avg(b03002e1), 2) as mean_total_population
   from
     congressional_districts_114 cd
     inner join acs_2013_5yr_bg_nation acs on st_intersects(cd.geom, acs.wkb_geometry)
     inner join x03_hispanic_or_latino_origin x3 on x3.geoid = geoid_data
-  where
-    cd.statefp = '12'
-  group by 1
+  group by 1,2
+),
+totals as (
+  select
+    acs.statefp as state,
+    cd114fp as district,
+    geoid_data,
+
+    -- Totals
+    b03002e1 as total_population,
+    b03002e3 as total_white,
+    b03002e4 as total_black,
+    b03002e6 as total_asian,
+    b03002e12 as total_hispanic,
+    b03002e5 + b03002e7 + b03002e8 + b03002e9 as total_other
+  from
+    congressional_districts_114 cd
+  inner join acs_2013_5yr_bg_nation acs on st_intersects(cd.geom, acs.wkb_geometry)
+  inner join x03_hispanic_or_latino_origin x3 on x3.geoid = geoid_data
+  order by 3 desc
 )
 
 select
-  acs.statefp as state,
-  cd114fp as district,
-  -- geoid_data,
-  b03002e1 as total_population,
-  b03002e3 as total_white,
-  b03002e4 as total_black,
-  b03002e6 as total_asian,
-  b03002e12 as total_hispanic,
-  b03002e5 + b03002e7 + b03002e8 + b03002e9 as total_other,
-  round(b03002e1 - mean_total_population, 2) as mean_diff,
-  b03002e1 / stddev_total_population as stddevs,
-  agg.mean_total_population
+  geoid_data,
+  total_population,
+  total_white,
+  total_black,
+  total_asian,
+  total_hispanic,
+  total_other
+
+  -- Percentages
+  -- coalesce(round(100 * total_white / nullif(total_population, 0), 2), 0.0) as percent_white,
+  -- coalesce(round(100 * total_black / nullif(total_population, 0), 2), 0.0) as percent_black,
+  -- coalesce(round(100 * total_asian / nullif(total_population, 0), 2), 0.0) as percent_asian,
+  -- coalesce(round(100 * total_hispanic / nullif(total_population, 0), 2), 0.0) as percent_hispanic,
+  -- coalesce(round(100 * total_other / nullif(total_population, 0), 2), 0.0) as percent_other,
+  --
+  -- round(total_population - agg.mean_total_population, 2) as mean_diff,
+  -- round(total_population / agg.stddev_total_population, 2) as stddevs
 from
-  congressional_districts_114 cd
-inner join acs_2013_5yr_bg_nation acs on st_intersects(cd.geom, acs.wkb_geometry)
-inner join x03_hispanic_or_latino_origin x3 on x3.geoid = geoid_data
-inner join aggregates agg on agg.district = cd114fp
-where
-  acs.statefp = '12' and
-  b03002e1 > 0
-order by 10 asc
+  totals
+-- inner join aggregates agg on agg_district = district and agg_state = state
+order by 2 desc
+) to stdout with csv header
