@@ -33,3 +33,8 @@ ogr2ogr -t_srs 'EPSG:4326' --config PG_USE_COPY YES -append -f PGDump /dev/stdou
 ogr2ogr -nlt PROMOTE_TO_MULTI -t_srs 'EPSG:4326' --config PG_USE_COPY YES -append -f PGDump /dev/stdout data/shp/congressional_districts_114.shp | psql $db_name
 
 psql -c 'alter table congressional_districts_114 rename column wkb_geometry to geom' $db_name
+
+# Import helper functions
+psql -f sql/_median.sql $db_name
+psql -f sql/_array_sort.sql $db_name
+psql -f sql/_percentile_cont.sql $db_name
