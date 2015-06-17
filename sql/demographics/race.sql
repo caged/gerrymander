@@ -1,4 +1,5 @@
-copy (
+drop table if exists race_demographics;
+
 with aggregates as (
   select
     cd.statefp as agg_state,
@@ -51,8 +52,8 @@ select
 
   round(total_population - agg.mean_total_population, 2) as mean_diff,
   round(total_population / agg.stddev_total_population, 2) as stddevs
+into race_demographics
 from
   totals
 inner join aggregates agg on agg_district = district and agg_state = state
 order by 1, 2 desc
-) to stdout with csv header

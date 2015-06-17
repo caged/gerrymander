@@ -1,0 +1,16 @@
+#!/bin/sh
+
+set -e
+
+usage() {
+  echo "Usage: $0 [-d database name]" 1>&2; exit 1;
+}
+
+while getopts ":d:" opt; do
+  case ${opt} in
+    d) db_name=$OPTARG;;
+    *) usage;;
+  esac
+done
+
+if [[ -z $db_name  ]]; then usage; fi

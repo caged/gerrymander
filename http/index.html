@@ -1,0 +1,37 @@
+<!doctype html>
+<meta charset="utf-8">
+<style>
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.vis {
+  width: 100vw;
+  height: 100vh;
+}
+</style>
+<body>
+<div class="vis js-vis"></div>
+<script src="http://d3js.org/d3.v3.min.js"></script>
+<script src="https://cdn.rawgit.com/interactivethings/d3-grid/9c31fd86769647fcce0eda49ca2b17de46cc74e0/d3-grid.js"></script>
+<script type="text/javascript">
+
+var el     = d3.select('.js-vis'),
+    margin = { top: 10, right: 10, bottom: 10, left: 10 },
+    width  = parseFloat(el.style('width')) - margin.left - margin.right,
+    height = parseFloat(el.style('height')) - margin.top - margin.bottom
+
+var grid = d3.layout.grid()
+    .bands()
+    .size([width, height])
+    .padding([0.1, 0.1])
+
+var svg = d3.select('.js-vis').append('svg')
+    .attr('width', width + margin.left + margin.right)
+    .attr('height', height + margin.top + margin.bottom)
+  .append('g')
+    .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')')
+
+</script>
